@@ -24,7 +24,7 @@ This project uses ROS Kinetic and establishes communication through rosbridge fo
 
 1. Publishers:
    - Responsible for sending (pushing) messages
-   - Example in your code:
+   - Example in my code:
 
     ```python
     # This is a publisher that sends Joy messages
@@ -39,8 +39,10 @@ This project uses ROS Kinetic and establishes communication through rosbridge fo
    - Responsible for receiving messages
    - Triggered when new messages arrive
 
+```text
 Publisher -----> Topic -----> Subscriber
-(Your Program)  (/joy)    (joy_mapper_node)
+(Program)        (/joy)       (joy_mapper_node)
+```
 
 Actual workflow:
 
@@ -52,8 +54,8 @@ Actual workflow:
 Like this:
 
 ```text
-Your Program --Joy msgs--> joy_mapper_node --Vehicle cmds--> Motor Control Node ---> Actual Motors
-(Publisher)               (Sub+Pub)                        (Subscriber)
+Your Program => Joy msgs --> joy_mapper_node => Vehicle cmds --> Motor Control Node ---> Actual Motors
+(Publisher)                  (Sub+Pub)                           (Subscriber)
 ```
 
 ### Joystick signal
@@ -106,7 +108,8 @@ cd ~/duckietown
 # Load the environment settings
 source environment.sh
 
-# Start the joystick control
+# Start the joystick control, ubuntu_desktop is my hostname, change to yours
+# We can use `hostname` to check hostname
 roslaunch duckietown joystick.launch veh:=ubuntu_desktop
 ```
 
