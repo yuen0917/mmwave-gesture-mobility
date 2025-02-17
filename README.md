@@ -167,7 +167,6 @@ rostopic echo /ubuntu_desktop/joy
 ```
 
 ### Computer
-
 - Clone the repository and cd to the project directory
 
     ```sh
@@ -180,6 +179,12 @@ rostopic echo /ubuntu_desktop/joy
     poetry install
     ```
 
+- Install and add roslibpy
+
+    ```sh
+    portry add roslibpy
+    ```
+    
 - Launch the console to start
 
     ```sh
