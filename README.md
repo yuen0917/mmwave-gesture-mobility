@@ -1,4 +1,4 @@
-# mmWave Radar AI Gesture Recognition
+# Control Duckietown by Using mmWave Gesture Recongition
 
 ## Overview
 
@@ -92,7 +92,6 @@ jstest /dev/input/js0
 ```
 
 After inputting the command, you will see the following image. You can move the joystick and observe if the values change.
-![image](https://hackmd.io/_uploads/HJsMFIHwkg.png)
 
 #### Quick Start Using Joystick
 
