@@ -1,28 +1,30 @@
 """Command line interface module."""
 
-import os
 import cmd
 import datetime
+import os
+import time
 from pathlib import Path
 from typing import Tuple
 
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+from keras.layers import LSTM, Conv2D, Dense, Flatten
 from keras.models import Sequential, load_model
-from keras.layers import LSTM, Dense, Conv2D, Flatten
 from keras.utils import to_categorical
 from rich.progress import track
 
 from ..mmwave.radar import MMWave
-from ..utils.logger import logger, console
+from ..simulate_joystick.rosbridge_simulate_joystick_v2 import DuckieController
+from ..utils.logger import console, logger
 
 # Model configuration
 MODEL_CONFIG = {
     "LSTM": {
         "name": "LSTM",
         "batch_size": 32,
-        "epochs": 300,
+        "epochs": 200,
         "validation_split": 0.2,
         "sequence_length": 20,
         "hidden_units": 128,
@@ -30,7 +32,7 @@ MODEL_CONFIG = {
     "Conv2D": {
         "name": "Conv2D",
         "batch_size": 32,
-        "epochs": 300,
+        "epochs": 200,
         "validation_split": 0.2,
         "sequence_length": 20,
         "filters": 32,
@@ -68,6 +70,7 @@ class Console(cmd.Cmd):
     Attributes:
         prompt (str): Command prompt
         mmwave (MMWave): Radar controller instance
+        duckie (DuckieController): DuckieController instance
     """
 
     def __init__(self) -> None:
@@ -80,6 +83,14 @@ class Console(cmd.Cmd):
         mpl.rcParams["toolbar"] = "None"
 
         self._init_radar()
+
+        # 初始化 DuckieController 作為類別屬性
+        self.duckie = None
+        try:
+            self.duckie = DuckieController(host="192.168.68.117", port=9090)
+            logger.info("[green]已成功連接到 ROS Bridge")
+        except Exception as e:
+            logger.error(f"[red]ROS Bridge 連接失敗：{str(e)}")
 
     def _init_radar(self) -> None:
         """Initialize the radar device."""
@@ -232,54 +243,103 @@ class Console(cmd.Cmd):
         return buffer
 
     def do_predict(self, args: str) -> None:
-        """Predict gesture.
-
-        Args:
-            args: Model type, 'LSTM' or 'Conv2D', defaults to 'LSTM'
-        """
+        """Predict gesture and control Duckie."""
         args = args or "LSTM"
 
         try:
-            self._validate_args(args, ["LSTM", "Conv2D"])
+            # 檢查 DuckieController 是否已初始化
+            if self.duckie is None or not self.duckie.client.is_connected:
+                logger.error("[red]ROS Bridge 未連接")
+                return
 
-            # Load model
+            # 載入模型
+            self._validate_args(args, ["LSTM", "Conv2D"])
             model_path = Path("models") / f"{args}.keras"
             if not model_path.exists():
-                logger.error(f"[red]Model not found: {args}.keras")
+                logger.error(f"[red]模型未找到：{args}.keras")
                 return
 
             model = load_model(model_path)
-            logger.info(f"[green]Model loaded: {args}.keras")
+            logger.info(f"[green]模型已載入：{args}.keras")
 
-            # Collect gesture data
-            logger.info("Observing gesture...")
-            buffer = self._collect_gesture_data()
+            logger.info("開始持續偵測手勢... (按 Ctrl+C 停止)")
 
-            if not buffer:
-                logger.error("[red]No gesture detected")
-                return
+            try:
+                while True:
+                    try:
+                        # 檢查 ROS 連接狀態
+                        if not self.duckie.client.is_connected:
+                            logger.error("[red]ROS Bridge 連接已斷開")
+                            break
 
-            logger.info("Predicting gesture...")
+                        # 清除緩衝區以準備新的手勢偵測
+                        self.mmwave.clear_frame_buffer()
 
-            # Prepare data
-            sequence_length = MODEL_CONFIG[args]["sequence_length"]
-            gesture_data = np.zeros((1, sequence_length, 2))
-            gesture_data[0, : min(len(buffer), sequence_length)] = buffer[:sequence_length]
+                        # 收集手勢資料
+                        logger.info("等待手勢...")
+                        buffer = self._collect_gesture_data()
 
-            if args == "Conv2D":
-                gesture_data = gesture_data.reshape((-1, sequence_length, 2, 1))
+                        if not buffer:
+                            logger.debug("No gesture detected, continuing...")
+                            continue
 
-            # Make prediction
-            prediction = model.predict(gesture_data, verbose=0)
+                        # Prepare data
+                        sequence_length = MODEL_CONFIG[args]["sequence_length"]
+                        gesture_data = np.zeros((1, sequence_length, 2))
+                        gesture_data[0, : min(len(buffer), sequence_length)] = buffer[:sequence_length]
 
-            # Get prediction result
-            predicted_gesture = np.argmax(prediction)
-            gesture_label = GESTURE_MAP.get(predicted_gesture, "unknown")
-            console.print(f"Probability: {prediction.max():.3f}", style="green")
-            console.print(f"Prediction: {gesture_label}", style="green")
+                        if args == "Conv2D":
+                            gesture_data = gesture_data.reshape((-1, sequence_length, 2, 1))
+
+                        # Make prediction
+                        prediction = model.predict(gesture_data, verbose=0)
+                        predicted_gesture = np.argmax(prediction)
+                        gesture_label = GESTURE_MAP.get(predicted_gesture, "unknown")
+
+                        # 顯示預測結果
+                        console.print(f"Probability: {prediction.max():.3f}", style="green")
+                        console.print(f"Prediction: {gesture_label}", style="green")
+
+                        # 檢查 ROS 連接狀態並執行控制命令
+                        if gesture_label == "left":
+                            self.duckie.turn_left()
+                            console.print("動作：向左轉", style="blue")
+                        elif gesture_label == "right":
+                            self.duckie.turn_right()
+                            console.print("動作：向右轉", style="blue")
+                        elif gesture_label == "up":
+                            self.duckie.forward()
+                            console.print("動作：前進", style="blue")
+                        elif gesture_label == "down":
+                            self.duckie.backward()
+                            console.print("動作：後退", style="blue")
+                        elif gesture_label in ["cw", "ccw"]:
+                            self.duckie.stop()
+                            console.print("動作：停止", style="blue")
+
+                        time.sleep(0.1)
+
+                    except KeyboardInterrupt:
+                        logger.info("使用者停止偵測")
+                        break
+                    except Exception as e:
+                        logger.error(f"預測錯誤：{str(e)}")
+                        time.sleep(1)
+
+            finally:
+                # 在預測結束時發送停止指令
+                try:
+                    if self.duckie and self.duckie.client.is_connected:
+                        self.duckie.stop()
+                        logger.info("[blue]已發送停止指令[/blue]")
+                        time.sleep(0.1)  # 確保停止指令被發送
+                except Exception as e:
+                    logger.error(f"發送停止指令失敗：{str(e)}")
 
         except Exception as e:
-            logger.error(str(e))
+            logger.error(f"控制器錯誤：{str(e)}")
+        finally:
+            logger.info("手勢偵測已停止")
 
     def _prepare_training_data(self) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare training data.
@@ -409,4 +469,6 @@ class Console(cmd.Cmd):
     def do_exit(self, args: str) -> bool:
         """Exit the program."""
         logger.info("[cyan]Exiting the program...[/cyan]")
+        if self.duckie:
+            self.duckie.close()
         return True
