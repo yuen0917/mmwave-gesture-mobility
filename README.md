@@ -4,7 +4,7 @@
 
 ### Introduction
 
-This project extends mmWave gesture recognition capabilities to control Duckietown robot movements. Using the AWR1642 mmWave radar data, it provides Setup, Record, Train, and Predict functionalities to identify specific gestures and translate them into corresponding Duckietown control commands. Supported gestures include:
+This project extends mmWave gesture recognition capabilities to control Duckietown movements. Using the AWR1642 mmWave radar data, it provides Setup, Record, Train, and Predict functionalities to identify specific gestures and translate them into corresponding Duckietown control commands. Supported gestures include:
 
 - Swipe Up
 - Swipe Down
