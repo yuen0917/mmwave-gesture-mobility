@@ -84,13 +84,13 @@ class Console(cmd.Cmd):
 
         self._init_radar()
 
-        # 初始化 DuckieController 作為類別屬性
+        # Initialize DuckieController as a class attribute
         self.duckie = None
         try:
             self.duckie = DuckieController(host="192.168.68.117", port=9090)
-            logger.info("[green]已成功連接到 ROS Bridge")
+            logger.info("[green]Successfully connected to ROS Bridge")
         except Exception as e:
-            logger.error(f"[red]ROS Bridge 連接失敗：{str(e)}")
+            logger.error(f"[red]ROS Bridge connection failed: {str(e)}")
 
     def _init_radar(self) -> None:
         """Initialize the radar device."""
@@ -247,36 +247,36 @@ class Console(cmd.Cmd):
         args = args or "LSTM"
 
         try:
-            # 檢查 DuckieController 是否已初始化
+            # Check ROS connection status
             if self.duckie is None or not self.duckie.client.is_connected:
-                logger.error("[red]ROS Bridge 未連接")
+                logger.error("[red]ROS Bridge not connected")
                 return
 
-            # 載入模型
+            # Load model
             self._validate_args(args, ["LSTM", "Conv2D"])
             model_path = Path("models") / f"{args}.keras"
             if not model_path.exists():
-                logger.error(f"[red]模型未找到：{args}.keras")
+                logger.error(f"[red]Model not found: {args}.keras")
                 return
 
             model = load_model(model_path)
-            logger.info(f"[green]模型已載入：{args}.keras")
+            logger.info(f"[green]Model loaded: {args}.keras")
 
-            logger.info("開始持續偵測手勢... (按 Ctrl+C 停止)")
+            logger.info("Starting continuous gesture detection... (Press Ctrl+C to stop)")
 
             try:
                 while True:
                     try:
-                        # 檢查 ROS 連接狀態
+                        # Check ROS connection status
                         if not self.duckie.client.is_connected:
-                            logger.error("[red]ROS Bridge 連接已斷開")
+                            logger.error("[red]ROS Bridge connection lost")
                             break
 
-                        # 清除緩衝區以準備新的手勢偵測
+                        # Clear buffer for new gesture detection
                         self.mmwave.clear_frame_buffer()
 
-                        # 收集手勢資料
-                        logger.info("等待手勢...")
+                        # Collect gesture data
+                        logger.info("Waiting for gesture...")
                         buffer = self._collect_gesture_data()
 
                         if not buffer:
@@ -296,50 +296,50 @@ class Console(cmd.Cmd):
                         predicted_gesture = np.argmax(prediction)
                         gesture_label = GESTURE_MAP.get(predicted_gesture, "unknown")
 
-                        # 顯示預測結果
+                        # Display prediction results
                         console.print(f"Probability: {prediction.max():.3f}", style="green")
                         console.print(f"Prediction: {gesture_label}", style="green")
 
-                        # 檢查 ROS 連接狀態並執行控制命令
+                        # Check ROS connection status and execute control commands
                         if gesture_label == "left":
                             self.duckie.turn_left()
-                            console.print("動作：向左轉", style="blue")
+                            console.print("Action: Turn Left", style="blue")
                         elif gesture_label == "right":
                             self.duckie.turn_right()
-                            console.print("動作：向右轉", style="blue")
+                            console.print("Action: Turn Right", style="blue")
                         elif gesture_label == "up":
                             self.duckie.forward()
-                            console.print("動作：前進", style="blue")
+                            console.print("Action: Forward", style="blue")
                         elif gesture_label == "down":
                             self.duckie.backward()
-                            console.print("動作：後退", style="blue")
+                            console.print("Action: Backward", style="blue")
                         elif gesture_label in ["cw", "ccw"]:
                             self.duckie.stop()
-                            console.print("動作：停止", style="blue")
+                            console.print("Action: Stop", style="blue")
 
                         time.sleep(0.1)
 
                     except KeyboardInterrupt:
-                        logger.info("使用者停止偵測")
+                        logger.info("User stopped detection")
                         break
                     except Exception as e:
-                        logger.error(f"預測錯誤：{str(e)}")
+                        logger.error(f"Prediction error: {str(e)}")
                         time.sleep(1)
 
             finally:
-                # 在預測結束時發送停止指令
+                # Send stop command when prediction ends
                 try:
                     if self.duckie and self.duckie.client.is_connected:
                         self.duckie.stop()
-                        logger.info("[blue]已發送停止指令[/blue]")
-                        time.sleep(0.1)  # 確保停止指令被發送
+                        logger.info("[blue]Stop command sent[/blue]")
+                        time.sleep(0.1)  # Ensure stop command is sent
                 except Exception as e:
-                    logger.error(f"發送停止指令失敗：{str(e)}")
+                    logger.error(f"Failed to send stop command: {str(e)}")
 
         except Exception as e:
-            logger.error(f"控制器錯誤：{str(e)}")
+            logger.error(f"Controller error: {str(e)}")
         finally:
-            logger.info("手勢偵測已停止")
+            logger.info("Gesture detection stopped")
 
     def _prepare_training_data(self) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare training data.

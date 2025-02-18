@@ -6,11 +6,11 @@ import roslibpy
 
 class DuckieController:
     def __init__(self, host="192.168.68.117", port=9090):
-        """初始化 DuckieController
+        """Initialize DuckieController
 
         Args:
-            host (str): ROS bridge 伺服器位址
-            port (int): ROS bridge 伺服器埠號
+            host (str): ROS bridge server address
+            port (int): ROS bridge server port
         """
         self._setup_ros_connection(host, port)
         self.running = True
@@ -19,9 +19,9 @@ class DuckieController:
         self._start_send_thread()
 
     def _setup_ros_connection(self, host, port):
-        """設置 ROS 連接"""
+        """Set up ROS connection"""
         try:
-            # 檢查是否已經有活躍的 client
+            # Check if there's an active client
             if hasattr(self, "client"):
                 if self.client.is_connected:
                     try:
@@ -29,20 +29,20 @@ class DuckieController:
                     except:
                         pass
                     self.client.terminate()
-                # 重要：刪除舊的 client 實例
+                # Important: Delete old client instance
                 delattr(self, "client")
-                time.sleep(1)  # 等待連接完全關閉
+                time.sleep(1)  # Wait for connection to fully close
 
-            # 建立新的連接
+            # Establish new connection
             self.client = roslibpy.Ros(host=host, port=port)
             self.client.run()
 
-            # 等待確保連接建立
-            timeout = 5  # 5秒超時
+            # Wait to ensure connection is established
+            timeout = 5  # 5 seconds timeout
             start_time = time.time()
             while not self.client.is_connected:
                 if time.time() - start_time > timeout:
-                    raise ConnectionError("連接超時")
+                    raise ConnectionError("Connection timeout")
                 time.sleep(0.1)
 
             self.publisher = roslibpy.Topic(self.client, "/ubuntu_desktop/joy", "sensor_msgs/Joy")
@@ -53,38 +53,38 @@ class DuckieController:
                     if hasattr(self, "publisher"):
                         self.publisher.unadvertise()
                     self.client.terminate()
-                    # 重要：刪除失敗的 client 實例
+                    # Important: Delete failed client instance
                     delattr(self, "client")
                 except:
                     pass
-            raise ConnectionError(f"ROS 連接失敗：{e}")
+            raise ConnectionError(f"ROS connection failed: {e}")
 
     def _start_send_thread(self):
-        """啟動發送執行緒"""
+        """Start sending thread"""
         self.send_thread = threading.Thread(target=self._send_loop)
         self.send_thread.daemon = True
         self.send_thread.start()
 
     def _send_loop(self):
-        """持續發送控制訊號的迴圈"""
+        """Continuous control signal sending loop"""
         while self.running and self.client.is_connected:
             try:
                 current_time = time.time()
 
-                # 建立控制訊號
+                # Create control signal
                 axes = [0.0] * 4
                 buttons = [0] * 15
 
-                # 設定方向
+                # Set direction
                 if self.current_direction == "left":
                     axes[1] = 1.0
                 elif self.current_direction == "right":
                     axes[1] = -1.0
 
-                # 設定油門
+                # Set throttle
                 axes[3] = self.current_throttle
 
-                # 設定必要按鈕
+                # Set required buttons
                 buttons[1] = 1
                 buttons[3] = 1
 
@@ -98,40 +98,40 @@ class DuckieController:
                 time.sleep(0.02)  # 50Hz
 
             except Exception as e:
-                print(f"發送錯誤: {e}")
+                print(f"Send error: {e}")
 
     def move(self, direction="none", throttle=0.0):
-        """控制小鴨移動
+        """Control Duckie movement
 
         Args:
-            direction (str): 方向控制 ("none", "left", "right")
-            throttle (float): 速度控制 (-1.0 到 1.0)
+            direction (str): Direction control ("none", "left", "right")
+            throttle (float): Speed control (-1.0 to 1.0)
         """
         self.current_direction = direction
-        self.current_throttle = max(min(throttle, 1.0), -1.0)  # 限制在 -1.0 到 1.0 之間
+        self.current_throttle = max(min(throttle, 1.0), -1.0)  # Limit between -1.0 and 1.0
 
     def forward(self, speed=1.0):
-        """向前移動"""
+        """Move forward"""
         self.move(throttle=abs(speed))
 
     def backward(self, speed=1.0):
-        """向後移動"""
+        """Move backward"""
         self.move(throttle=-abs(speed))
 
     def turn_left(self):
-        """向左轉"""
+        """Turn left"""
         self.move(direction="left")
 
     def turn_right(self):
-        """向右轉"""
+        """Turn right"""
         self.move(direction="right")
 
     def stop(self):
-        """停止移動"""
+        """Stop movement"""
         self.move()
 
     def close(self):
-        """關閉控制器並清理資源"""
+        """Close controller and clean up resources"""
         self.running = False
         if hasattr(self, "send_thread"):
             self.send_thread.join(timeout=1.0)
@@ -143,16 +143,16 @@ class DuckieController:
         if hasattr(self, "client"):
             try:
                 self.client.terminate()
-                # 重要：刪除 client 實例
+                # Important: Delete client instance
                 delattr(self, "client")
-                time.sleep(1)  # 等待連接完全關閉
+                time.sleep(1)  # Wait for connection to fully close
             except:
                 pass
 
     def __enter__(self):
-        """支援 with 語句"""
+        """Support for with statement"""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """支援 with 語句結束時自動清理"""
+        """Auto cleanup when with statement ends"""
         self.close()

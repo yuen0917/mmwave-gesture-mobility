@@ -170,7 +170,7 @@ rostopic echo /ubuntu_desktop/joy
 - Clone the repository and cd to the project directory
 
     ```sh
-    git clone https://github.com/zyx1121/mmwave-gesture-recognition && cd mmwave-gesture-recognition
+    git clone https://github.com/yuen0917/mmwave-gesture-mobility && cd mmwave-gesture-mobility
     ```
 
 - Install dependencies
@@ -184,7 +184,7 @@ rostopic echo /ubuntu_desktop/joy
     ```sh
     portry add roslibpy
     ```
-    
+
 - Launch the console to start
 
     ```sh
@@ -227,7 +227,9 @@ rostopic echo /ubuntu_desktop/joy
 
 ## Project Structure
 
-- `mmwave-gesture-recognition/`
+The structure is similar to the original mmwave-gesture-recognition project, with the addition of a `simulate_joystick` folder containing `rosbridge_simulate_joystick_v2.py` for joystick signal simulation. The `cli.py` has also been modified to support joystick signal simulation.
+
+- `mmwave-gesture-mobility/`
     - `configs/` - (Configuration files)
         - `profile.cfg`
     - `models/` - (Trained models)
@@ -242,11 +244,14 @@ rostopic echo /ubuntu_desktop/joy
         - `mmwave/` - (mmWave radar data processing)
             - `radar.py` - (Radar data processing)
             - `uart.py` - (UART communication)
+        - `simulate_joystick/` - (Simulate joystick)
+            - `rosbridge_simulate_joystick_v2.py` - (Simulate joystick)
         - `utils/` - (Utility functions)
             - `logger.py` - (Logging configuration)
         - `main.py` - (Main entry point)
     - `pyproject.toml` - (Poetry configuration)
     - `README.md` - (Project documentation)
+
 
 ## Command Functions
 
