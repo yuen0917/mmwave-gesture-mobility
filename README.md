@@ -4,7 +4,7 @@
 
 ### Introduction
 
-This project extends mmWave gesture recognition capabilities to control Duckietown robot movements. Using the AWR1642 mmWave radar data, it provides Setup, Record, Train, and Predict functionalities to identify specific gestures and translate them into corresponding Duckiebot control commands. Supported gestures include:
+This project extends mmWave gesture recognition capabilities to control Duckietown robot movements. Using the AWR1642 mmWave radar data, it provides Setup, Record, Train, and Predict functionalities to identify specific gestures and translate them into corresponding Duckietown control commands. Supported gestures include:
 
 - Swipe Up
 - Swipe Down
@@ -81,9 +81,9 @@ The joystick signals can be divided into two types:
 
 ### Duckietown Setup
 
-#### Using SSH or UART Connection to Duckiebot
+#### Using SSH or UART Connection to Duckietown
 
-You can connect to the Duckiebot using either SSH (`ssh ubuntu@192.168.xxx.xxx`) or UART connection.
+You can connect to the Duckietown using either SSH (`ssh ubuntu@192.168.xxx.xxx`) or UART connection.
 
 #### Test joystick Function
 
@@ -215,9 +215,9 @@ rostopic echo /ubuntu_desktop/joy
     CLI > predict
     ```
 
-### Gesture and Duckiebot Control Mapping
+### Gesture and Duckietown Control Mapping
 
-| Gesture | Duckiebot Action |
+| Gesture | Duckietown Action |
 |---------|------------------|
 | Swipe Up | Move Forward |
 | Swipe Down | Move Backward |
