@@ -132,12 +132,6 @@ If the script is set up, you can run the following file directly.
     curl -sSL https://install.python-poetry.org | python3 -
     ```
 
-- Change the host in `cli.py` to your Duckietown's IP address.
-
-    ```python=
-    self.duckie = DuckieController(host="192.168.xxx.xxx", port=9090)
-    ```
-
 ## Getting Started
 
 ### Duckietown
@@ -167,10 +161,17 @@ rostopic echo /ubuntu_desktop/joy
 ```
 
 ### Computer
+
 - Clone the repository and cd to the project directory
 
     ```sh
     git clone https://github.com/yuen0917/mmwave-gesture-mobility && cd mmwave-gesture-mobility
+    ```
+
+- Change the host in `cli.py` to your Duckietown's IP address.
+
+    ```python=
+    self.duckie = DuckieController(host="192.168.xxx.xxx", port=9090)
     ```
 
 - Install dependencies
